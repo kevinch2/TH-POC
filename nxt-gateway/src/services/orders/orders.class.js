@@ -57,7 +57,6 @@ class Service {
 
   }
 
-
   async find (params) {
     return [];
   }
@@ -74,7 +73,10 @@ class Service {
     //const account = await this.accountService.create(data);
     //data.account_id = account._id;
 
-    
+    data.id = parseInt(data.id);
+    data.qty = parseInt(data.qty);
+    data.total = parseFloat(data.total);
+       
     var msg = JSON.stringify(data);
     this.orderExchangeChannel.publish('orders', '', Buffer.from(msg));
 

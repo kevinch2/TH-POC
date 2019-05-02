@@ -19,13 +19,6 @@ module.exports = function (app) {
     service.Model = db.collection('order');
   });
 
-  service.hooks(hooks);
-
-  var orchToOrderQName = 'orchToOrderQueue';
-  var orchToOrderChannel = null;
-  var orderToOrchQName = 'orderToOrchQueue';
-  var orderToOrchChannel = null;
-
   var amqp_url = 'amqp://yvtsrovv:yEZ_sKFTVMbuX31nctaCLp_8V_lajLzI@clam.rmq.cloudamqp.com/yvtsrovv';
   amqp.connect(amqp_url, (err0, conn) => {
     if(err0) {
@@ -37,33 +30,23 @@ module.exports = function (app) {
         throw(err1);
       }
 
-      ch.assertQueue(orchToOrderQName);
-      ch.consume(orchToOrderQName, function(msg) {
-        ch.ack(msg);
-        service.emit('create', msg);
+      var queue = 'orderQueue';
+      var ex = 'orders';
+      ch.assertExchange(ex, 'fanout', {durable:true});
+      ch.assertQueue('orderQueue', '', (err, q) => {
+        console.log(' [*] Waiting for messages in ' + q.queue + '. To exit press CTRL+C');
+        ch.bindQueue(queue, ex, '');
+
+        ch.consume(queue, function(msg) {
+          console.log(' [x] Orders2 svc got ' + msg.content.toString() + '.');
+        });
       });
-      orchToOrderChannel = ch;
     });
-
-    conn.createChannel((err1, ch) => {
-      if(err1) {
-        throw(err1);
-      }
-
-      ch.assertQueue(orderToOrchQName);
-      orderToOrchChannel = ch;
-  
-      console.log(" [*] Order is consuming messages from %s.", orchToOrderQName);
-    });
-
   });
 
-  service.on('create', data => {
-    console.log('  [X] Order service got created event:  ' + data.content.toString());
-    obj = JSON.parse(data.content.toString());
-    obj.msgType = 'orderCreateResponse';
-    obj.msgStatus = 'success';
-    orderToOrchChannel.sendToQueue(orderToOrchQName, Buffer.from(JSON.stringify(obj)));
+  service.on('created', data => {
+    console.log('Order service got created event');
   });
 
+  service.hooks(hooks);
 };

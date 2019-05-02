@@ -70,11 +70,19 @@ module.exports = function (app) {
   service.on('find', data => {
     console.log('  [X] Account detail request:  ' + data.content.toString());
 
-    newdata = JSON.parse(data.content.toString());
-    newdata.msgType = 'accountDetailRequestResponse';
-    newdata.acctId = 77;
+    obj = JSON.parse(data.content.toString());
+    console.log(obj.acctEmail);
+    service.find({
+      query : {
+        email : obj.acctEmail
+      }
+    }).then((resp) => { 
+//      console.log(resp); 
+      obj.acctId = resp.acctId;
+      obj.msgType = 'accountDetailRequestResponse';
 
-    console.log('  [X] Account responding with:  ' + JSON.stringify(newdata));
-    accountToOrchChannel.sendToQueue(accountToOrchQName, Buffer.from(JSON.stringify(newdata)));
+    console.log('  [X] Account responding with:  ' + JSON.stringify(obj));
+    accountToOrchChannel.sendToQueue(accountToOrchQName, Buffer.from(JSON.stringify(obj)));
+    });
   });
 };
